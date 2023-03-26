@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 
+// определяет схему Mongoose для модели User
 const UserSchema = new mongoose.Schema({
   fullName: {
     type: String,
