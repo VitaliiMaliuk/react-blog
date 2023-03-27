@@ -1,9 +1,13 @@
 import express from "express";
+import multer from "multer";
 import mongoose from "mongoose";
-import { registerValidation, loginValidation, postCreateValidation } from "./validations.js";
-import checkAuth from "./utils/checkAuth.js";
-import * as UserController from "./controllers/UserController.js";
-import * as PostController from "./controllers/PostController.js";
+import {
+  registerValidation,
+  loginValidation,
+  postCreateValidation,
+} from "./validations.js";
+import { checkAuth, handleValidationErrors } from "./utils/index.js";
+import { UserController, PostController } from "./controllers/index.js";
 
 // Подключает приложение к базе данных MongoDB, используя Mongoose
 mongoose
@@ -19,15 +23,55 @@ const app = express();
 // Это middleware функция, которая разбирает входящие запросы с JSON-телом и добавляет объект body в объект request. Это делает возможным работу с данными, отправленными клиентом через JSON.
 app.use(express.json());
 
-app.post("/auth/login", loginValidation, UserController.login);
-app.post("/auth/register", registerValidation, UserController.register);
+const storage = multer.diskStorage({
+  destination: (_, __, cb) => {
+    cb(null, "uploads");
+  },
+  filename: (_, file, cb) => {
+    cb(null, file.originalname);
+  },
+});
+
+const upload = multer({ storage });
+app.use("/uploads", express.static("uploads"));
+
+app.post(
+  "/auth/login",
+  loginValidation,
+  handleValidationErrors,
+  UserController.login
+);
+app.post(
+  "/auth/register",
+  registerValidation,
+  handleValidationErrors,
+  UserController.register
+);
 app.get("/auth/me", checkAuth, UserController.getMe);
+
+app.post("/upload", checkAuth, upload.single("image"), (req, res) => {
+  res.json({
+    url: `/uploads/${req.file.originalname}`,
+  });
+});
 
 app.get("/posts", PostController.getAll);
 app.get("/posts/:id", PostController.getOne);
-app.post("/posts", checkAuth, postCreateValidation, PostController.create);
+app.post(
+  "/posts",
+  checkAuth,
+  postCreateValidation,
+  handleValidationErrors,
+  PostController.create
+);
 app.delete("/posts/:id", checkAuth, PostController.remove);
-app.patch("/posts/:id", checkAuth, PostController.update);
+app.patch(
+  "/posts/:id",
+  checkAuth,
+  postCreateValidation,
+  handleValidationErrors,
+  PostController.update
+);
 
 // код запускает сервер на порту 4444 и выводит сообщение "Server OK" в консоль, если сервер был успешно запущен
 app.listen(4444, (err) => {
