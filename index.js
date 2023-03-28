@@ -1,6 +1,7 @@
 import express from "express";
 import multer from "multer";
 import mongoose from "mongoose";
+import cors from "cors";
 import {
   registerValidation,
   loginValidation,
@@ -22,6 +23,8 @@ mongoose
 const app = express();
 // Это middleware функция, которая разбирает входящие запросы с JSON-телом и добавляет объект body в объект request. Это делает возможным работу с данными, отправленными клиентом через JSON.
 app.use(express.json());
+
+app.use(cors());
 
 const storage = multer.diskStorage({
   destination: (_, __, cb) => {
@@ -55,7 +58,9 @@ app.post("/upload", checkAuth, upload.single("image"), (req, res) => {
   });
 });
 
+app.get("/tags", PostController.getLastTags);
 app.get("/posts", PostController.getAll);
+app.get("/posts/tags", PostController.getLastTags);
 app.get("/posts/:id", PostController.getOne);
 app.post(
   "/posts",
